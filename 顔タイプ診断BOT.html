@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>顔タイプ診断 | あなたの顔が持つ"印象の答え"</title>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600&family=Noto+Sans+JP:wght@300;400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#F5F0E8; --bg2:#EDE6D8; --surface:#FEFCF8;
+  --text:#2A1F14; --text2:#6B5744;
+  --accent:#C4955A; --accent2:#8B5E2E;
+  --gold:#D4A96A; --gold2:#A07840;
+  --border:rgba(139,94,46,0.18); --border2:rgba(139,94,46,0.35);
+  --mystic:#4A3060; --mystic2:#7B5FA0;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Noto Sans JP",sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-weight:300;overflow-x:hidden;}
+
+/* 星 */
+.stars{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+.star{position:absolute;width:2px;height:2px;background:var(--gold);border-radius:50%;opacity:0;animation:twinkle var(--dur) var(--delay) infinite;}
+@keyframes twinkle{0%,100%{opacity:0;transform:scale(.5)}50%{opacity:.5;transform:scale(1)}}
+
+.container{max-width:640px;margin:0 auto;padding:0 20px 80px;position:relative;z-index:1;}
+
+/* APIキー設定画面 */
+.apikey-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px;}
+.apikey-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:36px;max-width:480px;width:100%;}
+.apikey-title{font-family:"Shippori Mincho",serif;font-size:20px;font-weight:500;margin-bottom:8px;text-align:center;}
+.apikey-sub{font-size:12px;color:var(--text2);text-align:center;line-height:1.8;margin-bottom:24px;}
+.apikey-input{width:100%;padding:12px 14px;border:1px solid var(--border2);border-radius:8px;background:var(--bg2);font-size:13px;color:var(--text);font-family:"Noto Sans JP",sans-serif;margin-bottom:10px;letter-spacing:.05em;}
+.apikey-input:focus{outline:none;border-color:var(--gold);}
+.apikey-note{font-size:11px;color:var(--text2);line-height:1.7;margin-bottom:20px;padding:12px 14px;background:rgba(212,169,106,.08);border-radius:8px;}
+.apikey-btn{width:100%;padding:14px;background:var(--accent2);color:#fff;border:none;border-radius:8px;font-family:"Shippori Mincho",serif;font-size:15px;font-weight:500;letter-spacing:.1em;cursor:pointer;transition:all .2s;}
+.apikey-btn:hover{background:var(--accent);}
+.apikey-err{font-size:12px;color:#8B2A1E;margin-top:10px;display:none;}
+
+/* ヒーロー */
+.hero{text-align:center;padding:56px 0 36px;}
+.eyebrow{font-size:11px;letter-spacing:.3em;color:var(--gold);font-family:"Shippori Mincho",serif;margin-bottom:14px;}
+.hero-title{font-family:"Shippori Mincho",serif;font-size:clamp(24px,6vw,36px);font-weight:500;line-height:1.45;letter-spacing:.04em;margin-bottom:16px;}
+.hero-title em{font-style:normal;color:var(--accent2);border-bottom:1px solid var(--gold);}
+.hero-desc{font-size:13px;color:var(--text2);line-height:1.9;max-width:460px;margin:0 auto;}
+.divider{display:flex;align-items:center;gap:14px;margin:28px 0;}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:linear-gradient(to right,transparent,var(--gold),transparent);}
+.divider span{color:var(--gold);font-size:14px;}
+
+/* ステップ共通 */
+.screen{display:none;}
+.screen.active{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeUp .5s ease forwards;}
+
+/* 質問ステップ */
+.q-header{margin-bottom:28px;}
+.q-progress{display:flex;gap:6px;margin-bottom:20px;}
+.q-dot{flex:1;height:3px;border-radius:2px;background:var(--border);transition:background .4s;}
+.q-dot.done{background:var(--gold);}
+.q-dot.active{background:var(--accent2);}
+.q-num{font-size:11px;letter-spacing:.2em;color:var(--gold);font-family:"Shippori Mincho",serif;margin-bottom:10px;}
+.q-text{font-family:"Shippori Mincho",serif;font-size:clamp(17px,4vw,22px);font-weight:500;line-height:1.5;color:var(--text);}
+.q-sub{font-size:12px;color:var(--text2);margin-top:8px;line-height:1.7;}
+.choices{display:grid;gap:10px;margin-top:24px;}
+.choice-btn{padding:16px 20px;background:var(--surface);border:1px solid var(--border2);border-radius:10px;font-family:"Shippori Mincho",serif;font-size:14px;color:var(--text);cursor:pointer;transition:all .2s;text-align:left;line-height:1.5;display:flex;align-items:center;gap:12px;}
+.choice-btn:hover{border-color:var(--gold);background:rgba(212,169,106,.06);transform:translateX(4px);}
+.choice-btn.selected{border-color:var(--accent2);background:rgba(139,94,46,.07);color:var(--accent2);}
+.choice-icon{font-size:20px;flex-shrink:0;width:28px;text-align:center;}
+
+/* 写真アップ */
+.upload-section-title{font-family:"Shippori Mincho",serif;font-size:18px;font-weight:500;margin-bottom:6px;}
+.upload-section-sub{font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:20px;}
+.upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+.upload-area{border:1.5px dashed var(--border2);background:var(--bg2);border-radius:12px;padding:24px 16px;text-align:center;cursor:pointer;transition:all .3s;position:relative;min-height:160px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;}
+.upload-area:hover,.upload-area.dragover{border-color:var(--gold);background:rgba(212,169,106,.07);}
+.upload-area.has-image{border-style:solid;border-color:var(--gold);}
+.upload-area input{display:none;}
+.upload-emoji{font-size:28px;opacity:.5;transition:opacity .2s;}
+.upload-area:hover .upload-emoji{opacity:.8;}
+.upload-lbl{font-size:13px;font-weight:400;font-family:"Shippori Mincho",serif;}
+.upload-hint{font-size:11px;color:var(--text2);}
+.preview-img{width:100%;max-height:160px;object-fit:contain;border-radius:6px;display:none;}
+.preview-img.on{display:block;}
+.remove-btn{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;background:rgba(42,31,20,.65);color:#fff;border:none;cursor:pointer;font-size:10px;display:none;align-items:center;justify-content:center;}
+.remove-btn.on{display:flex;}
+.placeholder.off{display:none;}
+.tips{background:rgba(212,169,106,.08);border:1px solid rgba(212,169,106,.22);border-radius:10px;padding:14px 18px;margin-bottom:20px;}
+.tips-title{font-size:11px;letter-spacing:.15em;color:var(--gold2);margin-bottom:8px;font-family:"Shippori Mincho",serif;}
+.tips-list{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:3px 16px;}
+.tips-list li{font-size:11px;color:var(--text2);padding-left:13px;position:relative;line-height:1.6;}
+.tips-list li::before{content:"✦";position:absolute;left:0;color:var(--gold);font-size:8px;top:3px;}
+
+/* ボタン共通 */
+.primary-btn{width:100%;padding:16px;background:var(--accent2);color:#fff;border:none;border-radius:10px;font-family:"Shippori Mincho",serif;font-size:15px;font-weight:500;letter-spacing:.12em;cursor:pointer;transition:all .25s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.primary-btn:hover:not(:disabled){background:var(--accent);transform:translateY(-2px);box-shadow:0 8px 24px rgba(139,94,46,.28);}
+.primary-btn:disabled{background:#B5A090;cursor:not-allowed;}
+
+/* ローディング */
+.loading-overlay{display:none;position:fixed;inset:0;background:rgba(245,240,232,.93);z-index:100;align-items:center;justify-content:center;flex-direction:column;gap:22px;backdrop-filter:blur(6px);}
+.loading-overlay.on{display:flex;}
+.spin{width:72px;height:72px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 1.1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-msg{font-family:"Shippori Mincho",serif;font-size:14px;color:var(--text2);letter-spacing:.1em;animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
+
+/* 結果 */
+.result-hero{text-align:center;padding:44px 0 20px;}
+.result-type{font-family:"Shippori Mincho",serif;font-size:clamp(30px,8vw,50px);font-weight:600;letter-spacing:.06em;margin-bottom:6px;}
+.result-en{font-size:11px;letter-spacing:.3em;color:var(--accent2);}
+.rcard{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;margin-bottom:14px;position:relative;overflow:hidden;}
+.rcard::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),var(--accent2),var(--gold));}
+.score-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+.score-lbl{font-size:11px;color:var(--text2);letter-spacing:.1em;margin-bottom:6px;}
+.sbar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:4px;}
+.sfill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--gold2),var(--gold));transition:width 1.2s cubic-bezier(.34,1.56,.64,1);width:0%;}
+.stxt{font-size:11px;color:var(--text2);}
+.tag-wrap{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:20px;}
+.tag{padding:4px 13px;border-radius:100px;font-size:12px;border:1px solid var(--border2);color:var(--text2);background:var(--bg2);}
+.tag.p{background:var(--accent2);color:#fff;border-color:var(--accent2);}
+.diag-text{font-size:13px;line-height:2.1;color:var(--text2);font-family:"Shippori Mincho",serif;border-left:2px solid var(--gold);padding-left:16px;margin-bottom:22px;}
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.feat-item{background:var(--bg2);border-radius:8px;padding:13px;}
+.feat-t{font-size:11px;letter-spacing:.1em;color:var(--gold2);margin-bottom:5px;font-family:"Shippori Mincho",serif;}
+.feat-v{font-size:13px;color:var(--text);line-height:1.5;}
+
+/* Q回答サマリー */
+.q-summary{background:rgba(74,48,96,.05);border:1px solid rgba(74,48,96,.12);border-radius:10px;padding:18px 20px;margin-bottom:14px;}
+.q-summary-title{font-size:11px;letter-spacing:.15em;color:var(--mystic2);margin-bottom:12px;font-family:"Shippori Mincho",serif;}
+.q-ans-list{display:flex;flex-direction:column;gap:7px;}
+.q-ans-item{display:flex;gap:10px;align-items:baseline;}
+.q-ans-q{font-size:11px;color:var(--text2);flex-shrink:0;width:110px;}
+.q-ans-a{font-size:12px;color:var(--text);font-family:"Shippori Mincho",serif;}
+
+/* AIコメント */
+.ai-wrap{background:rgba(74,48,96,.06);border:1px solid rgba(74,48,96,.14);border-radius:12px;padding:22px;margin-bottom:14px;}
+.ai-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.ai-av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--mystic),var(--mystic2));display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+.ai-name{font-size:12px;color:var(--mystic2);letter-spacing:.1em;font-family:"Shippori Mincho",serif;}
+.ai-text{font-size:13px;line-height:2.1;color:var(--text);white-space:pre-wrap;font-family:"Shippori Mincho",serif;}
+.cursor{display:inline-block;width:2px;height:1em;background:var(--mystic2);margin-left:2px;animation:blink .8s infinite;vertical-align:text-bottom;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* シェア・CTA */
+.share-row{display:flex;gap:10px;margin-bottom:12px;}
+.share-btn{flex:1;padding:12px;border-radius:8px;font-size:13px;font-family:"Shippori Mincho",serif;font-weight:500;cursor:pointer;transition:all .2s;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:7px;}
+.share-btn.x{background:#000;color:#fff;border-color:#000;}
+.share-btn.x:hover{background:#333;}
+.share-btn.line{background:#06C755;color:#fff;border-color:#06C755;}
+.share-btn.line:hover{background:#05A847;}
+.share-btn.cp{background:var(--bg2);color:var(--text2);}
+.share-btn.cp:hover{border-color:var(--gold);}
+.cta-card{background:linear-gradient(135deg,var(--accent2),var(--mystic));border-radius:14px;padding:28px;text-align:center;color:#fff;margin-top:8px;}
+.cta-ey{font-size:11px;letter-spacing:.22em;opacity:.8;margin-bottom:8px;}
+.cta-ttl{font-family:"Shippori Mincho",serif;font-size:18px;font-weight:500;line-height:1.5;margin-bottom:8px;}
+.cta-desc{font-size:12px;opacity:.85;line-height:1.8;margin-bottom:18px;}
+.cta-btn{display:inline-block;padding:13px 30px;background:rgba(255,255,255,.95);color:var(--accent2);border-radius:100px;font-family:"Shippori Mincho",serif;font-size:14px;font-weight:500;letter-spacing:.08em;cursor:pointer;border:none;transition:all .2s;}
+.cta-btn:hover{background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.15);transform:translateY(-1px);}
+.retry-btn{width:100%;padding:13px;background:transparent;border:1px solid var(--border2);border-radius:8px;font-family:"Shippori Mincho",serif;font-size:13px;color:var(--text2);cursor:pointer;letter-spacing:.1em;transition:all .2s;margin-top:10px;}
+.retry-btn:hover{border-color:var(--gold);color:var(--accent2);}
+
+.err-msg{display:none;background:rgba(220,80,60,.08);border:1px solid rgba(220,80,60,.2);border-radius:8px;padding:13px 16px;font-size:12px;color:#8B2A1E;margin-top:10px;line-height:1.7;}
+.err-msg.on{display:block;}
+
+/* パスワード入力画面（お客さん向け） */
+.pw-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px;}
+.pw-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;max-width:420px;width:100%;text-align:center;}
+.pw-icon{font-size:40px;margin-bottom:16px;}
+.pw-title{font-family:"Shippori Mincho",serif;font-size:20px;font-weight:500;margin-bottom:8px;}
+.pw-sub{font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:28px;}
+.pw-input{width:100%;padding:14px;border:1px solid var(--border2);border-radius:8px;background:var(--bg2);font-size:16px;color:var(--text);text-align:center;letter-spacing:.2em;font-family:"Shippori Mincho",serif;margin-bottom:10px;}
+.pw-input:focus{outline:none;border-color:var(--gold);}
+.pw-btn{width:100%;padding:15px;background:var(--accent2);color:#fff;border:none;border-radius:8px;font-family:"Shippori Mincho",serif;font-size:15px;font-weight:500;letter-spacing:.1em;cursor:pointer;transition:all .2s;}
+.pw-btn:hover{background:var(--accent);}
+.pw-err{font-size:12px;color:#8B2A1E;margin-top:10px;display:none;line-height:1.6;}
+.pw-err.on{display:block;}
+
+/* 管理者設定内のパスワード設定欄 */
+.admin-section{margin-top:20px;padding-top:20px;border-top:1px solid var(--border);}
+.admin-section-title{font-size:12px;color:var(--text2);margin-bottom:10px;letter-spacing:.08em;}
+.pw-set-row{display:flex;gap:8px;}
+.pw-set-input{flex:1;padding:11px 13px;border:1px solid var(--border2);border-radius:8px;background:var(--bg2);font-size:13px;color:var(--text);font-family:"Noto Sans JP",sans-serif;}
+.pw-set-input:focus{outline:none;border-color:var(--gold);}
+.pw-set-btn{padding:11px 16px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;font-size:12px;color:var(--text2);cursor:pointer;white-space:nowrap;transition:all .2s;}
+.pw-set-btn:hover{border-color:var(--gold);color:var(--accent2);}
+.pw-current{font-size:11px;color:var(--gold2);margin-top:8px;}
+
+@media(max-width:480px){
+  .tips-list,.feat-grid,.score-grid{grid-template-columns:1fr;}
+  .upload-grid{grid-template-columns:1fr;}
+  .share-row{flex-direction:column;}
+}
+</style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+
+<div class="loading-overlay" id="loading">
+  <div class="spin"></div>
+  <div class="loading-msg" id="loading-msg">あなたの顔を読み解いています…</div>
+</div>
+
+<!-- APIキー設定画面 -->
+<div class="apikey-screen" id="apikey-screen">
+  <div class="apikey-card">
+    <div class="eyebrow" style="text-align:center;margin-bottom:12px;">SETUP</div>
+    <div class="apikey-title">管理者設定</div>
+    <div class="apikey-sub">初回のみ必要です。設定するとこのブラウザに保存され、<br>次回以降は表示されません。</div>
+    <input class="apikey-input" type="password" id="apikey-input" placeholder="sk-ant-api03-..." autocomplete="off">
+    <div class="apikey-note">
+      ✦ Anthropic APIキーを入力してください<br>
+      ✦ このキーはこのブラウザにのみ保存されます<br>
+      ✦ 第三者に送信されることはありません<br>
+      ✦ APIキーは <a href="https://console.anthropic.com/" target="_blank" style="color:var(--accent2);">console.anthropic.com</a> で取得できます
+    </div>
+    <button class="apikey-btn" onclick="saveApiKey()">設定して診断を始める</button>
+    <div class="apikey-err" id="apikey-err">APIキーを入力してください</div>
+    <div class="admin-section">
+      <div class="admin-section-title">✦ 診断パスワードの設定（お客さんに伝えるパスワード）</div>
+      <div class="pw-set-row">
+        <input class="pw-set-input" type="text" id="pw-set-input" placeholder="例：sakura2024">
+        <button class="pw-set-btn" onclick="savePassword()">保存</button>
+      </div>
+      <div class="pw-current" id="pw-current"></div>
+    </div>
+  </div>
+</div>
+
+<!-- パスワード入力画面（お客さん向け） -->
+<div class="pw-screen" id="pw-screen" style="display:none;">
+  <div class="pw-card">
+    <div class="pw-icon">🔑</div>
+    <div class="pw-title">パスワードを入力してください</div>
+    <div class="pw-sub">ご購入後にLINEでお送りした<br>パスワードを入力してください</div>
+    <input class="pw-input" type="password" id="pw-input" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkPassword()">
+    <button class="pw-btn" onclick="checkPassword()">診断をはじめる →</button>
+    <div class="pw-err" id="pw-err">パスワードが違います。LINEでご確認ください。</div>
+  </div>
+</div>
+
+<!-- メインコンテナ -->
+<div class="container" id="main-container" style="display:none;">
+
+  <!-- ヒーロー -->
+  <div class="hero screen active" id="screen-hero">
+    <div class="eyebrow">FACE TYPE DIAGNOSIS</div>
+    <h1 class="hero-title">あなたの顔が持つ<br><em>印象の答え</em>、教えます</h1>
+    <p class="hero-desc">いくつかの質問に答えて写真を1枚アップするだけ。<br>顔タイプ診断で、あなたが本来持つ印象の個性がわかります。</p>
+    <div class="divider"><span>✦</span></div>
+    <button class="primary-btn" style="max-width:320px;margin:0 auto;" onclick="startQuiz()">
+      <span>✨</span><span>診断をはじめる</span>
+    </button>
+  </div>
+
+  <!-- 質問ステップ -->
+  <div class="screen" id="screen-quiz">
+    <div style="padding-top:40px;">
+      <div class="q-header">
+        <div class="q-progress" id="q-progress"></div>
+        <div class="q-num" id="q-num"></div>
+        <div class="q-text" id="q-text"></div>
+        <div class="q-sub" id="q-sub"></div>
+      </div>
+      <div class="choices" id="q-choices"></div>
+    </div>
+  </div>
+
+  <!-- 写真アップ -->
+  <div class="screen" id="screen-upload">
+    <div style="padding-top:40px;">
+      <div class="eyebrow">STEP FINAL</div>
+      <div class="upload-section-title">写真をアップロード</div>
+      <div class="upload-section-sub">正面と横顔の2枚を用意してください。<br>どちらか1枚でも診断できます。</div>
+      <div class="upload-grid">
+        <div class="upload-area" id="area-front" onclick="document.getElementById('inp-front').click()" ondragover="dov(event,'front')" ondragleave="dlv('front')" ondrop="ddrop(event,'front')">
+          <input type="file" id="inp-front" accept="image/*" onchange="loadImg(event,'front')">
+          <div class="placeholder" id="ph-front">
+            <div class="upload-emoji">🙂</div>
+            <div class="upload-lbl">正面写真</div>
+            <div class="upload-hint">顔全体が映るように</div>
+          </div>
+          <img class="preview-img" id="prev-front" src="" alt="">
+          <button class="remove-btn" id="rm-front" onclick="rmImg(event,'front')">✕</button>
+        </div>
+        <div class="upload-area" id="area-side" onclick="document.getElementById('inp-side').click()" ondragover="dov(event,'side')" ondragleave="dlv('side')" ondrop="ddrop(event,'side')">
+          <input type="file" id="inp-side" accept="image/*" onchange="loadImg(event,'side')">
+          <div class="placeholder" id="ph-side">
+            <div class="upload-emoji">🫤</div>
+            <div class="upload-lbl">横顔写真</div>
+            <div class="upload-hint">真横から・任意</div>
+          </div>
+          <img class="preview-img" id="prev-side" src="" alt="">
+          <button class="remove-btn" id="rm-side" onclick="rmImg(event,'side')">✕</button>
+        </div>
+      </div>
+      <div class="tips">
+        <div class="tips-title">より精度の高い診断のために</div>
+        <ul class="tips-list">
+          <li>正面向きで真っすぐ</li><li>髪は耳にかける</li>
+          <li>均一な照明</li><li>無表情・自然な状態</li>
+          <li>カメラと目線を同じ高さ</li><li>顎から額まで収める</li>
+        </ul>
+      </div>
+      <div class="err-msg" id="upload-err"></div>
+      <button class="primary-btn" id="analyze-btn" onclick="analyze()" disabled>
+        <span>✨</span><span>顔タイプを診断する</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 結果 -->
+  <div class="screen" id="screen-result">
+    <div class="result-hero">
+      <div class="eyebrow">YOUR FACE TYPE</div>
+      <div class="result-type" id="r-type">—</div>
+      <div class="result-en" id="r-en">—</div>
+    </div>
+
+    <!-- スコア＆タグ -->
+    <div class="rcard">
+      <div class="score-grid">
+        <div>
+          <div class="score-lbl">世代感（子供顔 ← → 大人顔）</div>
+          <div class="sbar"><div class="sfill" id="sg"></div></div>
+          <div class="stxt" id="sg-t"></div>
+        </div>
+        <div>
+          <div class="score-lbl">印象ライン（曲線 ← → 直線）</div>
+          <div class="sbar"><div class="sfill" id="ss"></div></div>
+          <div class="stxt" id="ss-t"></div>
+        </div>
+      </div>
+      <div class="tag-wrap" id="r-tags"></div>
+      <div class="diag-text" id="r-diag"></div>
+      <div class="feat-grid" id="r-feat"></div>
+    </div>
+
+    <!-- 質問回答サマリー -->
+    <div class="q-summary">
+      <div class="q-summary-title">あなたの回答から</div>
+      <div class="q-ans-list" id="q-ans-list"></div>
+    </div>
+
+    <!-- AIコメント -->
+    <div class="ai-wrap">
+      <div class="ai-head">
+        <div class="ai-av">✦</div>
+        <div class="ai-name">パーソナル診断 より</div>
+      </div>
+      <div class="ai-text" id="ai-comment"></div>
+    </div>
+
+    <!-- シェア・CTA -->
+    <div class="share-row">
+      <button class="share-btn x" onclick="shareX()">𝕏 でシェア</button>
+      <button class="share-btn line" onclick="shareLine()">LINE でシェア</button>
+      <button class="share-btn cp" onclick="copyResult()">📋 コピー</button>
+    </div>
+    <div class="cta-card">
+      <div class="cta-ey">NEXT STEP</div>
+      <div class="cta-ttl">あなたの顔タイプに<br>本当に似合うスタイルを知りたいですか？</div>
+      <div class="cta-desc">プロによる対面診断では骨格・顔タイプの詳細分析を行います。<br>「なんとなく似合わない」の理由が、はっきりわかります。</div>
+      <button class="cta-btn" onclick="openCTA()">無料相談を予約する →</button>
+    </div>
+    <button class="retry-btn" onclick="retry()">← もう一度診断する</button>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+// ===== 設定（ここだけ変更） =====
+const CTA_URL = "https://your-service.example.com/booking";
+
+// ===== 質問データ =====
+const QUESTIONS = [
+  {
+    num: "Q1", text: "友人からよく言われる印象は？",
+    sub: "直感で選んでください",
+    choices: [
+      { icon:"🐰", label:"かわいい・癒し系" },
+      { icon:"🌸", label:"女性らしい・品がある" },
+      { icon:"❄️", label:"クール・かっこいい" },
+      { icon:"⚡", label:"元気・明るい・活発" },
+    ]
+  },
+  {
+    num: "Q2", text: "鏡で自分の目を見たとき、どちらに近い？",
+    sub: "形や大きさの印象で選んでください",
+    choices: [
+      { icon:"👀", label:"丸くて大きめ・たれ目気味" },
+      { icon:"👁", label:"きりっとしていてやや細め" },
+      { icon:"✨", label:"大きくてはっきりしている" },
+      { icon:"🌙", label:"細くてミステリアスな印象" },
+    ]
+  },
+  {
+    num: "Q3", text: "自分の輪郭・フェイスライン、どれが近い？",
+    sub: "全体のシルエットで判断してください",
+    choices: [
+      { icon:"🔵", label:"丸みがあってやわらかい" },
+      { icon:"🔷", label:"卵形・スッとしたライン" },
+      { icon:"⬜", label:"横幅があって直線的" },
+      { icon:"🔺", label:"フェイスラインがシャープ" },
+    ]
+  },
+  {
+    num: "Q4", text: "何もしていないとき、よく間違われる年齢は？",
+    sub: "実年齢より上か下か、が手がかりになります",
+    choices: [
+      { icon:"🌱", label:"実年齢より若く見られがち" },
+      { icon:"🌿", label:"実年齢通りと言われる" },
+      { icon:"🌳", label:"実年齢より大人っぽく見られる" },
+    ]
+  },
+  {
+    num: "Q5", text: "似合うと感じるファッションは？",
+    sub: "自分が自然と手に取るスタイルで選んでください",
+    choices: [
+      { icon:"🎀", label:"フリル・花柄・ガーリー" },
+      { icon:"👗", label:"ワンピース・上品・女性らしい" },
+      { icon:"🧥", label:"モード・シンプル・ミニマル" },
+      { icon:"👟", label:"カジュアル・スポーティ・デニム" },
+    ]
+  },
+  {
+    num: "Q6", text: "写真を撮られたとき、どちらの印象がある？",
+    sub: "他者からのフィードバックで選んでください",
+    choices: [
+      { icon:"🌟", label:"自然とかわいく・華やかに写る" },
+      { icon:"🖤", label:"クールに・かっこよく写る" },
+      { icon:"🍃", label:"ナチュラル・清潔感がある" },
+      { icon:"🌹", label:"エレガント・上品に写る" },
+    ]
+  }
+];
+
+// ===== タイプ定義 =====
+const TYPES = {
+  "キュート":{ en:"CUTE", tags:["子供顔","曲線","丸い目元","小顔感"], diag:"柔らかく丸みのある印象が全体に漂い、近くにいるだけで場の空気が和む愛嬌の持ち主。小動物的なかわいらしさと、どこか守ってあげたくなる雰囲気が共存しています。", feat:[{t:"印象キーワード",v:"かわいい・愛嬌・小動物系"},{t:"似合うスタイル",v:"ガーリー・甘め・カジュアル"},{t:"強みの印象",v:"親しみやすさと自然な愛くるしさ"},{t:"NGライン",v:"シャープすぎるモード系"}]},
+  "アクティブキュート":{ en:"ACTIVE CUTE", tags:["子供顔","直線×曲線MIX","ハツラツ","元気"], diag:"元気さとかわいさが同居した、スポーティなのに愛らしい稀有な顔立ち。目力があり、パッと見て覚えてもらいやすいタイプ。動いているほど魅力が増します。", feat:[{t:"印象キーワード",v:"元気・活発・親しみやすい"},{t:"似合うスタイル",v:"スポーティ・カジュアル・ポップ"},{t:"強みの印象",v:"エネルギッシュで記憶に残る顔"},{t:"NGライン",v:"過剰にフェミニン・ふんわり系"}]},
+  "フレッシュ":{ en:"FRESH", tags:["中間タイプ","ナチュラル","清潔感","万能"], diag:"どちらにも偏りすぎない、バランスの取れた顔立ち。媚びすぎず尖りすぎず。清潔感と自然な親しみやすさを兼ね備えており、ほぼどんなスタイルも着こなせます。", feat:[{t:"印象キーワード",v:"清潔感・自然・バランス型"},{t:"似合うスタイル",v:"ナチュラル・シンプル・定番"},{t:"強みの印象",v:"誰とでも馴染む万能な印象"},{t:"NGライン",v:"特になし（幅広く着こなせる）"}]},
+  "クールカジュアル":{ en:"COOL CASUAL", tags:["中間","直線的","スタイリッシュ","都会的"], diag:"シャープさの中にどこか温かみがある、クールだけど取っつきにくくはない絶妙なバランス。センスの良さを自然に与えながら、カジュアルな場にも馴染める柔軟さを持っています。", feat:[{t:"印象キーワード",v:"スタイリッシュ・都会的・センス系"},{t:"似合うスタイル",v:"モード・ストリート・シンプルモダン"},{t:"強みの印象",v:"センスが伝わるクールな存在感"},{t:"NGライン",v:"過剰にフリフリ・ガーリー"}]},
+  "フェミニン":{ en:"FEMININE", tags:["大人寄り","曲線","上品","女性らしい"], diag:"柔らかいのに子供っぽくない、成熟した女性らしさが自然に滲み出るタイプ。化粧映えが良く、ドレスアップしたときに特に輝きを増します。", feat:[{t:"印象キーワード",v:"女性らしい・上品・華やか"},{t:"似合うスタイル",v:"フェミニン・エレガント・ロマンティック"},{t:"強みの印象",v:"ドレスアップ時の圧倒的な華やかさ"},{t:"NGライン",v:"武骨すぎる服・ゴツいストリート系"}]},
+  "ソフトエレガント":{ en:"SOFT ELEGANT", tags:["大人顔","曲線","穏やか","上質"], diag:"優雅さの中に柔らかさがあり「品があるのに近づきやすい」という希少な印象の持ち主。そこにいるだけで場のトーンが上品になります。", feat:[{t:"印象キーワード",v:"上質・穏やか・知的・品格"},{t:"似合うスタイル",v:"コンサバ・フレンチ・上品カジュアル"},{t:"強みの印象",v:"品と柔らかさの両立"},{t:"NGライン",v:"派手なロゴ・過激なストリート"}]},
+  "エレガント":{ en:"ELEGANT", tags:["大人顔","直線×曲線","洗練","知的"], diag:"余計なものを削ぎ落としたような洗練された顔立ち。シンプルなスタイルほど引き立つ、本物の素材感と質感を活かせるタイプ。年齢を重ねるほど魅力が深まります。", feat:[{t:"印象キーワード",v:"洗練・知的・落ち着き・本物志向"},{t:"似合うスタイル",v:"モードエレガント・シックミニマル"},{t:"強みの印象",v:"年齢とともに深まる上品な存在感"},{t:"NGライン",v:"子供っぽいデザイン・ポップすぎる柄"}]},
+  "クール":{ en:"COOL", tags:["大人顔","直線","強い存在感","モード"], diag:"一目見て忘れられない、圧倒的な存在感とオーラを持つタイプ。そこにいるだけで場の空気が変わります。モードや前衛的なスタイルを最も自然に着こなせる顔立ちです。", feat:[{t:"印象キーワード",v:"クール・強い・モード・オーラ"},{t:"似合うスタイル",v:"ハイモード・モノトーン・アバンギャルド"},{t:"強みの印象",v:"圧倒的なオーラと存在感"},{t:"NGライン",v:"フリフリのガーリー・可愛すぎる系"}]},
+};
+
+// ===== 状態 =====
+let apiKey = "";
+let answers = [];
+let qIdx = 0;
+let imgs = { front: null, side: null };
+let b64 = { front: null, side: null };
+
+// ===== 初期化 =====
+function init() {
+  // 星生成
+  const sc = document.getElementById("stars");
+  for (let i = 0; i < 36; i++) {
+    const s = document.createElement("div"); s.className = "star";
+    s.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;--dur:${2+Math.random()*4}s;--delay:${Math.random()*5}s;`;
+    sc.appendChild(s);
+  }
+  // APIキー確認
+  const saved = localStorage.getItem("facebot_apikey");
+  if (saved) {
+    apiKey = saved;
+    document.getElementById("apikey-screen").style.display = "none";
+    // パスワード確認
+    const pw = localStorage.getItem("facebot_pw");
+    if (pw) {
+      document.getElementById("pw-screen").style.display = "flex";
+    } else {
+      document.getElementById("main-container").style.display = "block";
+    }
+  }
+  // 管理者画面：現在のパスワード表示
+  const curPw = localStorage.getItem("facebot_pw");
+  if (curPw) {
+    document.getElementById("pw-current").textContent = "現在のパスワード：" + curPw;
+    document.getElementById("pw-set-input").value = curPw;
+  }
+}
+
+function saveApiKey() {
+  const v = document.getElementById("apikey-input").value.trim();
+  if (!v || !v.startsWith("sk-")) {
+    document.getElementById("apikey-err").style.display = "block";
+    document.getElementById("apikey-err").textContent = "正しいAPIキーを入力してください（sk- で始まるもの）";
+    return;
+  }
+  apiKey = v;
+  localStorage.setItem("facebot_apikey", v);
+  document.getElementById("apikey-screen").style.display = "none";
+  const pw = localStorage.getItem("facebot_pw");
+  if (pw) {
+    document.getElementById("pw-screen").style.display = "flex";
+  } else {
+    document.getElementById("main-container").style.display = "block";
+  }
+}
+
+function savePassword() {
+  const v = document.getElementById("pw-set-input").value.trim();
+  if (!v) return;
+  localStorage.setItem("facebot_pw", v);
+  document.getElementById("pw-current").textContent = "現在のパスワード：" + v;
+  document.getElementById("pw-set-btn") && (document.querySelector(".pw-set-btn").textContent = "✓ 保存しました");
+  setTimeout(() => document.querySelector(".pw-set-btn").textContent = "保存", 1500);
+}
+
+function checkPassword() {
+  const input = document.getElementById("pw-input").value.trim();
+  const correct = localStorage.getItem("facebot_pw");
+  if (!correct || input === correct) {
+    document.getElementById("pw-screen").style.display = "none";
+    document.getElementById("main-container").style.display = "block";
+  } else {
+    const err = document.getElementById("pw-err");
+    err.classList.add("on");
+    document.getElementById("pw-input").value = "";
+    setTimeout(() => err.classList.remove("on"), 3000);
+  }
+}
+
+// ===== 画面切り替え =====
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  const t = document.getElementById("screen-" + id);
+  t.classList.add("active");
+  t.classList.add("fade-in");
+  setTimeout(() => t.classList.remove("fade-in"), 600);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// ===== 質問 =====
+function startQuiz() {
+  answers = []; qIdx = 0;
+  showScreen("quiz");
+  renderQ();
+}
+
+function renderQ() {
+  const q = QUESTIONS[qIdx];
+  // プログレス
+  let pd = "";
+  for (let i = 0; i < QUESTIONS.length; i++) {
+    const cls = i < qIdx ? "done" : i === qIdx ? "active" : "";
+    pd += `<div class="q-dot ${cls}"></div>`;
+  }
+  document.getElementById("q-progress").innerHTML = pd;
+  document.getElementById("q-num").textContent = q.num + " / Q" + QUESTIONS.length;
+  document.getElementById("q-text").textContent = q.text;
+  document.getElementById("q-sub").textContent = q.sub || "";
+  const cc = document.getElementById("q-choices");
+  cc.innerHTML = q.choices.map((c, i) =>
+    `<button class="choice-btn" onclick="answer(${i})">
+      <span class="choice-icon">${c.icon}</span>
+      <span>${c.label}</span>
+    </button>`
+  ).join("");
+}
+
+function answer(idx) {
+  const q = QUESTIONS[qIdx];
+  // 選択アニメ
+  document.querySelectorAll(".choice-btn").forEach((b, i) => {
+    b.classList.toggle("selected", i === idx);
+    b.disabled = true;
+  });
+  answers.push({ q: q.text, a: q.choices[idx].label });
+  setTimeout(() => {
+    qIdx++;
+    if (qIdx < QUESTIONS.length) { renderQ(); }
+    else { showScreen("upload"); }
+  }, 400);
+}
+
+// ===== 写真 =====
+function loadImg(e, side) {
+  const f = e.target.files[0];
+  if (f) processImg(f, side);
+}
+function dov(e, side) { e.preventDefault(); document.getElementById("area-"+side).classList.add("dragover"); }
+function dlv(side) { document.getElementById("area-"+side).classList.remove("dragover"); }
+function ddrop(e, side) {
+  e.preventDefault(); document.getElementById("area-"+side).classList.remove("dragover");
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith("image/")) processImg(f, side);
+}
+function processImg(file, side) {
+  imgs[side] = file;
+  const r = new FileReader();
+  r.onload = ev => {
+    b64[side] = ev.target.result.split(",")[1];
+    document.getElementById("prev-"+side).src = ev.target.result;
+    document.getElementById("prev-"+side).classList.add("on");
+    document.getElementById("ph-"+side).classList.add("off");
+    document.getElementById("rm-"+side).classList.add("on");
+    document.getElementById("area-"+side).classList.add("has-image");
+    document.getElementById("analyze-btn").disabled = !(b64.front || b64.side);
+  };
+  r.readAsDataURL(file);
+}
+function rmImg(e, side) {
+  e.stopPropagation();
+  imgs[side] = null; b64[side] = null;
+  document.getElementById("prev-"+side).classList.remove("on");
+  document.getElementById("prev-"+side).src = "";
+  document.getElementById("ph-"+side).classList.remove("off");
+  document.getElementById("rm-"+side).classList.remove("on");
+  document.getElementById("area-"+side).classList.remove("has-image");
+  document.getElementById("inp-"+side).value = "";
+  document.getElementById("analyze-btn").disabled = !(b64.front || b64.side);
+}
+
+// ===== AI解析 =====
+const LOAD_MSGS = ["あなたの顔を読み解いています…","輪郭のラインを確認中…","目元・唇の印象を分析中…","顔タイプを照合しています…","診断結果をまとめています…"];
+let loadTimer;
+function startLoad() {
+  let i = 0; const el = document.getElementById("loading-msg");
+  el.textContent = LOAD_MSGS[0];
+  loadTimer = setInterval(() => {
+    i = (i+1) % LOAD_MSGS.length;
+    el.style.opacity = 0;
+    setTimeout(() => { el.textContent = LOAD_MSGS[i]; el.style.opacity = ""; }, 300);
+  }, 2000);
+}
+function stopLoad() { clearInterval(loadTimer); }
+
+async function analyze() {
+  if (!b64.front && !b64.side) return;
+  document.getElementById("upload-err").classList.remove("on");
+  document.getElementById("loading").classList.add("on");
+  startLoad();
+
+  const answerSummary = answers.map(a => `・${a.q} → ${a.a}`).join("\n");
+  const prompt = `あなたは顔タイプ診断の専門家です。画像の顔を分析し、以下の質問回答も参考にしてタイプを判定してください。
+
+【ユーザーの回答】
+${answerSummary}
+
+【診断観点】
+1. 世代感（子供顔 / 中間 / 大人顔）：目の大きさ・顔の縦横比・頬の丸み・顎の形などで判断
+2. 印象ライン（曲線 / 中間 / 直線）：輪郭・目の形・眉・唇のラインで判断
+
+【タイプ】キュート / アクティブキュート / フレッシュ / クールカジュアル / フェミニン / ソフトエレガント / エレガント / クール
+
+JSON形式のみで返答してください：
+{
+  "type": "タイプ名",
+  "gen_score": 0-100（0=完全な子供顔、100=完全な大人顔）,
+  "gen_text": "世代感の一言（15字以内）",
+  "shape_score": 0-100（0=完全な曲線、100=完全な直線）,
+  "shape_text": "印象ラインの一言（15字以内）",
+  "comment": "この方の個性と魅力を伝える温かみあるコメント。質問の回答と顔の特徴を組み合わせて、その人だけに向けた言葉で180〜220字。"
+}`;
+
+  // 画像コンテント組み立て
+  const imgContent = [];
+  if (b64.front) imgContent.push({ type:"image", source:{ type:"base64", media_type: imgs.front.type||"image/jpeg", data: b64.front }});
+  if (b64.side)  imgContent.push({ type:"image", source:{ type:"base64", media_type: imgs.side.type||"image/jpeg",  data: b64.side  }});
+  imgContent.push({ type:"text", text: prompt });
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json", "x-api-key": apiKey, "anthropic-version":"2023-06-01" },
+      body: JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1000, messages:[{ role:"user", content: imgContent }] })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(()=>({}));
+      // 認証エラーならキー削除
+      if (res.status === 401) { localStorage.removeItem("facebot_apikey"); }
+      throw new Error(err.error?.message || `API Error ${res.status}`);
+    }
+    const data = await res.json();
+    const text = data.content.map(c=>c.text||"").join("");
+    const clean = text.replace(/```json|```/g,"").trim();
+    let result;
+    try { result = JSON.parse(clean); }
+    catch { const m = clean.match(/\{[\s\S]*\}/); if(m) result=JSON.parse(m[0]); else throw new Error("解析失敗"); }
+    stopLoad();
+    document.getElementById("loading").classList.remove("on");
+    showResult(result);
+  } catch(e) {
+    stopLoad();
+    document.getElementById("loading").classList.remove("on");
+    const err = document.getElementById("upload-err");
+    err.textContent = `エラーが発生しました。もう一度お試しください。\n（${e.message}）`;
+    err.classList.add("on");
+  }
+}
+
+// ===== 結果表示 =====
+function showResult(r) {
+  const t = r.type;
+  const td = TYPES[t] || TYPES["フレッシュ"];
+  document.getElementById("r-type").textContent = t;
+  document.getElementById("r-en").textContent = td.en;
+  setTimeout(() => {
+    document.getElementById("sg").style.width = (r.gen_score||50)+"%";
+    document.getElementById("ss").style.width = (r.shape_score||50)+"%";
+  }, 400);
+  document.getElementById("sg-t").textContent = r.gen_text||"";
+  document.getElementById("ss-t").textContent = r.shape_text||"";
+  document.getElementById("r-tags").innerHTML = td.tags.map((tag,i)=>`<span class="tag${i===0?" p":""}">${tag}</span>`).join("");
+  document.getElementById("r-diag").textContent = td.diag;
+  document.getElementById("r-feat").innerHTML = td.feat.map(f=>`<div class="feat-item"><div class="feat-t">${f.t}</div><div class="feat-v">${f.v}</div></div>`).join("");
+  // 回答サマリー
+  document.getElementById("q-ans-list").innerHTML = answers.map(a=>
+    `<div class="q-ans-item"><div class="q-ans-q">${a.q.replace("？","")}</div><div class="q-ans-a">→ ${a.a}</div></div>`
+  ).join("");
+  // AIコメントタイピング
+  const ce = document.getElementById("ai-comment");
+  ce.innerHTML = '<span class="cursor"></span>';
+  const comment = r.comment||"";
+  let i = 0;
+  const timer = setInterval(() => {
+    if (i < comment.length) { ce.innerHTML = comment.substring(0,i+1)+'<span class="cursor"></span>'; i++; }
+    else { ce.innerHTML = comment; clearInterval(timer); }
+  }, 28);
+  window._rt = t; window._rc = comment;
+  showScreen("result");
+}
+
+// ===== シェア =====
+function shareX() {
+  const t = `私の顔タイプは「${window._rt}」でした✨\n顔タイプ診断、あなたもやってみて👁\n`;
+  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(t)}&url=${encodeURIComponent(location.href)}`,"_blank");
+}
+function shareLine() {
+  const t = `私の顔タイプは「${window._rt}」でした！ あなたも診断してみて✨`;
+  window.open(`https://line.me/R/msg/text/?${encodeURIComponent(t+"\n"+location.href)}`,"_blank");
+}
+function copyResult() {
+  const t = `【顔タイプ診断結果】\n顔タイプ：${window._rt}\n\n${window._rc}`;
+  navigator.clipboard.writeText(t).then(()=>{
+    const b = document.querySelector(".share-btn.cp"); const orig = b.innerHTML;
+    b.innerHTML="✅ コピーしました"; setTimeout(()=>b.innerHTML=orig, 2000);
+  });
+}
+function openCTA() { window.open(CTA_URL,"_blank"); }
+function retry() {
+  b64={front:null,side:null}; imgs={front:null,side:null};
+  ["front","side"].forEach(s=>{
+    document.getElementById("prev-"+s).classList.remove("on");
+    document.getElementById("prev-"+s).src="";
+    document.getElementById("ph-"+s).classList.remove("off");
+    document.getElementById("rm-"+s).classList.remove("on");
+    document.getElementById("area-"+s).classList.remove("has-image");
+    document.getElementById("inp-"+s).value="";
+  });
+  document.getElementById("analyze-btn").disabled = true;
+  showScreen("hero");
+}
+
+init();
+</script>
+</body>
+</html>
