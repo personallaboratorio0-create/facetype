@@ -462,6 +462,18 @@ function init() {
     s.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;--dur:${2+Math.random()*4}s;--delay:${Math.random()*5}s;`;
     sc.appendChild(s);
   }
+  // ?admin がついていたら強制的に管理者設定画面を表示
+  if (location.search.includes("admin")) {
+    document.getElementById("apikey-screen").style.display = "flex";
+    const curPw = localStorage.getItem("facebot_pw");
+    if (curPw) {
+      document.getElementById("pw-current").textContent = "現在のパスワード：" + curPw;
+      document.getElementById("pw-set-input").value = curPw;
+    }
+    const savedKey = localStorage.getItem("facebot_apikey");
+    if (savedKey) document.getElementById("apikey-input").value = savedKey;
+    return;
+  }
   // APIキー確認
   const saved = localStorage.getItem("facebot_apikey");
   if (saved) {
