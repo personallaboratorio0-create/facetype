@@ -368,8 +368,9 @@ body{font-family:"Noto Sans JP",sans-serif;background:var(--bg);color:var(--text
 </div><!-- /container -->
 
 <script>
-// ===== 設定（ここだけ変更） =====
+// ===== 設定 =====
 const CTA_URL = "https://your-service.example.com/booking";
+const EMBEDDED_API_KEY = "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";
 
 // ===== 質問データ =====
 const QUESTIONS = [
@@ -462,7 +463,9 @@ function init() {
     s.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;--dur:${2+Math.random()*4}s;--delay:${Math.random()*5}s;`;
     sc.appendChild(s);
   }
-  // ?admin がついていたら強制的に管理者設定画面を表示
+  // APIキーは埋め込み済み
+  apiKey = EMBEDDED_API_KEY;
+  // ?admin がついていたらパスワード設定画面を表示
   if (location.search.includes("admin")) {
     document.getElementById("apikey-screen").style.display = "flex";
     const curPw = localStorage.getItem("facebot_pw");
@@ -470,28 +473,16 @@ function init() {
       document.getElementById("pw-current").textContent = "現在のパスワード：" + curPw;
       document.getElementById("pw-set-input").value = curPw;
     }
-    const savedKey = localStorage.getItem("facebot_apikey");
-    if (savedKey) document.getElementById("apikey-input").value = savedKey;
     return;
   }
-  // APIキー確認
-  const saved = localStorage.getItem("facebot_apikey");
-  if (saved) {
-    apiKey = saved;
-    document.getElementById("apikey-screen").style.display = "none";
-    // パスワード確認
-    const pw = localStorage.getItem("facebot_pw");
-    if (pw) {
-      document.getElementById("pw-screen").style.display = "flex";
-    } else {
-      document.getElementById("main-container").style.display = "block";
-    }
-  }
-  // 管理者画面：現在のパスワード表示
-  const curPw = localStorage.getItem("facebot_pw");
-  if (curPw) {
-    document.getElementById("pw-current").textContent = "現在のパスワード：" + curPw;
-    document.getElementById("pw-set-input").value = curPw;
+  // 通常時：管理者画面は非表示
+  document.getElementById("apikey-screen").style.display = "none";
+  // パスワード確認
+  const pw = localStorage.getItem("facebot_pw");
+  if (pw) {
+    document.getElementById("pw-screen").style.display = "flex";
+  } else {
+    document.getElementById("main-container").style.display = "block";
   }
 }
 
